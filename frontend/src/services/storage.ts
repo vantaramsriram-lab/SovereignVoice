@@ -2,16 +2,26 @@ import type { DemoRecord, AnalysisResponse } from '../types'
 import { audioUrlFromBase64, blobToDataUrl, probeAudioDuration } from './api'
 
 /**
- * localStorage persistence for demo records and UI preferences.
+ * Browser persistence for demo records and UI preferences.
  *
- * No credentials are ever stored here — only user-generated audio and the
- * analysis output the backend already returned. Audio is kept as data URLs so
- * records survive a page refresh without any server-side storage.
+ * Demo records (including their audio, kept as data URLs) live in IndexedDB.
+ * localStorage is only about 5 MB, which a couple of analyses with audio can
+ * fill, and the old localStorage-based code silently dropped older records when
+ * that happened. IndexedDB has a much larger quota, so every analysis is kept
+ * until the user deletes it.
+ *
+ * Small UI preferences stay in localStorage. No credentials are ever stored
+ * here — only user-generated audio and the analysis output the backend already
+ * returned.
  */
 
-const RECORDS_KEY = 'sovereignvoice.records.v1'
+const DB_NAME = 'sovereignvoice'
+const DB_VERSION = 1
+const RECORDS_STORE = 'records'
+const CHANGE_CHANNEL = 'sovereignvoice.records'
+/** Where records lived before IndexedDB. Migrated once, then removed. */
+const LEGACY_RECORDS_KEY = 'sovereignvoice.records.v1'
 const PREFS_KEY = 'sovereignvoice.prefs.v1'
-const MAX_RECORDS = 12
 
 export interface Preferences {
   showTranscriptByDefault: boolean
@@ -39,36 +49,167 @@ function safeParse<T>(raw: string | null, fallback: T): T {
   }
 }
 
-export function readRecords(): DemoRecord[] {
-  if (typeof window === 'undefined') return []
-  const parsed = safeParse<DemoRecord[]>(window.localStorage.getItem(RECORDS_KEY), [])
-  if (!Array.isArray(parsed)) return []
-  return parsed.filter((record) => record && record.id && record.intelligence)
+/* ------------------------------------------------------------------ */
+/* IndexedDB helpers                                                   */
+/* ------------------------------------------------------------------ */
+
+let dbPromise: Promise<IDBDatabase> | null = null
+
+function openDb(): Promise<IDBDatabase> {
+  if (dbPromise) return dbPromise
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') {
+      reject(new StorageError('This browser does not support saving analyses.'))
+      return
+    }
+    const request = indexedDB.open(DB_NAME, DB_VERSION)
+    request.onupgradeneeded = () => {
+      const db = request.result
+      if (!db.objectStoreNames.contains(RECORDS_STORE)) {
+        db.createObjectStore(RECORDS_STORE, { keyPath: 'id' })
+      }
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () =>
+      reject(new StorageError('Could not open browser storage for saved analyses.'))
+  })
+  // Allow a later call to retry if opening failed (e.g. private browsing).
+  dbPromise.catch(() => {
+    dbPromise = null
+  })
+  return dbPromise
 }
 
-function writeRecords(records: DemoRecord[], incoming: DemoRecord): void {
-  try {
-    window.localStorage.setItem(RECORDS_KEY, JSON.stringify(records))
-  } catch (error) {
-    // Most likely a quota error: drop the oldest half of the library and retry
-    // once, so the newest analysis is never lost.
-    const trimmed = records.slice(0, Math.max(1, Math.ceil(records.length / 2)))
+function toStorageError(error: DOMException | null, fallback: string): StorageError {
+  if (error && error.name === 'QuotaExceededError') {
+    return new StorageError(
+      'Browser storage is full, so this analysis could not be saved. ' +
+        'Delete older demos (Demo page → Clear all) and try again.',
+    )
+  }
+  return new StorageError(fallback)
+}
+
+/** Runs one request in its own transaction and resolves when it commits. */
+async function withStore<T>(
+  mode: IDBTransactionMode,
+  run: (store: IDBObjectStore) => IDBRequest<T>,
+  failureMessage: string,
+): Promise<T> {
+  const db = await openDb()
+  return new Promise<T>((resolve, reject) => {
+    const transaction = db.transaction(RECORDS_STORE, mode)
+    const request = run(transaction.objectStore(RECORDS_STORE))
+    transaction.oncomplete = () => resolve(request.result)
+    transaction.onerror = () => reject(toStorageError(transaction.error, failureMessage))
+    transaction.onabort = () => reject(toStorageError(transaction.error, failureMessage))
+  })
+}
+
+/* ------------------------------------------------------------------ */
+/* One-time migration from localStorage                                */
+/* ------------------------------------------------------------------ */
+
+let migration: Promise<void> | null = null
+
+function migrateLegacyRecords(): Promise<void> {
+  if (migration) return migration
+  migration = (async () => {
+    let raw: string | null = null
     try {
-      window.localStorage.setItem(RECORDS_KEY, JSON.stringify(trimmed))
+      raw = window.localStorage.getItem(LEGACY_RECORDS_KEY)
     } catch {
-      throw new StorageError(
-        `Browser storage is full, so "${incoming.label}" could not be saved. ` +
-          'Delete older demos (Demo page → Clear all) and try again.',
-      )
+      return
     }
+    if (!raw) return
+
+    const legacy = safeParse<DemoRecord[]>(raw, [])
+    const valid = Array.isArray(legacy) ? legacy.filter(isValidRecord) : []
+
+    if (valid.length > 0) {
+      const db = await openDb()
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction(RECORDS_STORE, 'readwrite')
+        const store = transaction.objectStore(RECORDS_STORE)
+        for (const record of valid) {
+          // `add` fails on an existing id, so newer IndexedDB data is never
+          // overwritten; ignore those per-record errors.
+          const request = store.add(record)
+          request.onerror = (event) => {
+            event.preventDefault()
+          }
+        }
+        transaction.oncomplete = () => resolve()
+        transaction.onerror = () => reject(transaction.error)
+        transaction.onabort = () => reject(transaction.error)
+      })
+    }
+
+    try {
+      window.localStorage.removeItem(LEGACY_RECORDS_KEY)
+    } catch {
+      /* nothing to do */
+    }
+  })().catch((error) => {
+    // Retry on the next read instead of caching the failure.
+    migration = null
+    throw error
+  })
+  return migration
+}
+
+/* ------------------------------------------------------------------ */
+/* Cross-tab change notifications                                      */
+/* ------------------------------------------------------------------ */
+
+function notifyRecordsChanged(): void {
+  if (typeof BroadcastChannel === 'undefined') return
+  try {
+    const channel = new BroadcastChannel(CHANGE_CHANNEL)
+    channel.postMessage('changed')
+    channel.close()
+  } catch {
+    /* notifications are best-effort */
   }
 }
 
-export function saveAnalysis(
+/** Calls `onChange` when another tab adds, edits or removes a record. */
+export function subscribeToRecordChanges(onChange: () => void): () => void {
+  if (typeof BroadcastChannel === 'undefined') return () => undefined
+  const channel = new BroadcastChannel(CHANGE_CHANNEL)
+  channel.onmessage = () => onChange()
+  return () => channel.close()
+}
+
+/* ------------------------------------------------------------------ */
+/* Records                                                             */
+/* ------------------------------------------------------------------ */
+
+function isValidRecord(record: DemoRecord | null | undefined): record is DemoRecord {
+  return Boolean(record && record.id && record.intelligence)
+}
+
+function timestamp(record: DemoRecord): number {
+  const value = Date.parse(record.createdAt)
+  return Number.isNaN(value) ? 0 : value
+}
+
+/** Every saved analysis, newest first. */
+export async function readRecords(): Promise<DemoRecord[]> {
+  if (typeof window === 'undefined') return []
+  await migrateLegacyRecords()
+  const all = await withStore<DemoRecord[]>(
+    'readonly',
+    (store) => store.getAll(),
+    'Could not read saved analyses from browser storage.',
+  )
+  return all.filter(isValidRecord).sort((a, b) => timestamp(b) - timestamp(a))
+}
+
+export async function saveAnalysis(
   analysis: AnalysisResponse,
   inputAudioDataUrl: string,
-): DemoRecord {
-  const existing = readRecords()
+): Promise<DemoRecord> {
   const inputLabel = analysis.input_audio.filename ?? 'Recording'
   const record: DemoRecord = {
     id: analysis.analysis_id,
@@ -98,12 +239,15 @@ export function saveAnalysis(
     stages: analysis.stages,
   }
 
-  // Newest first, de-duplicated, capped so the browser quota stays healthy.
-  const next = [record, ...existing.filter((item) => item.id !== record.id)].slice(
-    0,
-    MAX_RECORDS,
+  // Each analysis is its own entry (ids are unique), so saving a new one never
+  // touches the existing ones. Older records are only removed by the user.
+  await migrateLegacyRecords()
+  await withStore(
+    'readwrite',
+    (store) => store.put(record),
+    `"${record.label}" could not be saved to browser storage.`,
   )
-  writeRecords(next, record)
+  notifyRecordsChanged()
   return record
 }
 
@@ -118,37 +262,61 @@ export async function buildInputDataUrl(blob: Blob): Promise<{
   return { dataUrl, duration }
 }
 
-export function deleteRecord(id: string): DemoRecord[] {
-  const next = readRecords().filter((record) => record.id !== id)
-  try {
-    window.localStorage.setItem(RECORDS_KEY, JSON.stringify(next))
-  } catch {
-    throw new StorageError('Could not update browser storage.')
-  }
-  return next
-}
-
-export function clearRecords(): void {
-  window.localStorage.removeItem(RECORDS_KEY)
-}
-
-export function renameRecord(id: string, label: string): DemoRecord[] {
-  const next = readRecords().map((record) =>
-    record.id === id ? { ...record, label: label.trim() || record.label } : record,
+export async function deleteRecord(id: string): Promise<void> {
+  await withStore(
+    'readwrite',
+    (store) => store.delete(id),
+    'Could not update browser storage.',
   )
-  window.localStorage.setItem(RECORDS_KEY, JSON.stringify(next))
-  return next
+  notifyRecordsChanged()
 }
 
-export function storageFootprint(): { bytes: number; readable: string } {
-  const raw = window.localStorage.getItem(RECORDS_KEY) ?? ''
-  const bytes = new Blob([raw]).size
-  const readable =
-    bytes > 1024 * 1024
-      ? `${(bytes / (1024 * 1024)).toFixed(2)} MB`
-      : `${(bytes / 1024).toFixed(0)} KB`
-  return { bytes, readable }
+export async function clearRecords(): Promise<void> {
+  await withStore(
+    'readwrite',
+    (store) => store.clear(),
+    'Could not clear saved analyses.',
+  )
+  try {
+    window.localStorage.removeItem(LEGACY_RECORDS_KEY)
+  } catch {
+    /* nothing to do */
+  }
+  notifyRecordsChanged()
 }
+
+export async function renameRecord(id: string, label: string): Promise<void> {
+  const records = await readRecords()
+  const current = records.find((record) => record.id === id)
+  if (!current) return
+  const updated: DemoRecord = { ...current, label: label.trim() || current.label }
+  await withStore(
+    'readwrite',
+    (store) => store.put(updated),
+    'Could not update browser storage.',
+  )
+  notifyRecordsChanged()
+}
+
+/** Approximate size of the given records; audio data URLs dominate the total. */
+export function recordsFootprint(records: DemoRecord[]): string {
+  const OVERHEAD_PER_RECORD = 4 * 1024
+  const bytes = records.reduce(
+    (sum, record) =>
+      sum +
+      record.inputAudio.dataUrl.length +
+      record.outputAudio.dataUrl.length +
+      OVERHEAD_PER_RECORD,
+    0,
+  )
+  return bytes > 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+    : `${(bytes / 1024).toFixed(0)} KB`
+}
+
+/* ------------------------------------------------------------------ */
+/* Preferences                                                         */
+/* ------------------------------------------------------------------ */
 
 export function readPreferences(): Preferences {
   if (typeof window === 'undefined') return DEFAULT_PREFERENCES

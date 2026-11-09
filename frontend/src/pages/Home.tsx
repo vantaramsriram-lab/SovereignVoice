@@ -112,7 +112,7 @@ export function Home() {
         setPhase('results')
 
         try {
-          saveAnalysis(response, prepared.dataUrl)
+          await saveAnalysis(response, prepared.dataUrl)
         } catch (storageError) {
           setStorageWarning(
             storageError instanceof Error
