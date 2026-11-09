@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Logo } from './ui/Logo'
 
 const LINKS = [
-  { to: '/', label: 'Home' },
+  { to: '/', label: 'Intro' },
+  { to: '/try', label: 'Try it' },
   { to: '/demo', label: 'Demo' },
 ]
 
@@ -37,7 +37,7 @@ export function Navbar() {
           <NavLink
             to="/"
             className="group flex items-center gap-2.5 rounded-full py-1 pr-2 transition-opacity hover:opacity-90"
-            aria-label="SovereignVoice home"
+            aria-label="SovereignVoice introduction"
           >
             <span className="text-3xl font-medium tracking-[-0.01em] text-mist-50">
               Sovereign<span className="text-mist-300">Voice</span>
@@ -49,12 +49,10 @@ export function Navbar() {
               <NavLink
                 key={link.to}
                 to={link.to}
-                end={link.to === '/'}
+                end
                 className={({ isActive }) =>
-                  `relative rounded-full px-4 py-2 text-[13.5px] font-medium transition-colors duration-300 ${
-                    isActive
-                      ? 'text-white'
-                      : 'text-mist-400 hover:text-mist-100'
+                  `relative rounded-full px-3 py-2 text-[12.5px] font-medium transition-colors duration-300 sm:px-4 sm:text-[13.5px] ${
+                    isActive ? 'text-white' : 'text-mist-400 hover:text-mist-100'
                   }`
                 }
               >
