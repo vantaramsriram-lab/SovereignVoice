@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { convertToWav } from '../utils/wav'
+import { MAX_UPLOAD_BYTES } from './useAudioSource'
 
 export type RecorderStatus =
   | 'idle'
   | 'requesting'
   | 'recording'
+  | 'processing'
   | 'stopped'
   | 'denied'
   | 'unsupported'
@@ -37,6 +40,9 @@ function extensionFor(mimeType: string): string {
 
 /**
  * Microphone capture via the browser MediaRecorder API.
+ * MediaRecorder only produces WebM/OGG/MP4, so when a recording stops it is
+ * converted to WAV (16 kHz mono). If that is not possible, or the WAV would be
+ * over the 25 MB limit, the original recording is kept and a notice is shown.
  * Nothing is uploaded here — the blob is handed back to the page for preview
  * and only leaves the browser when the agent presses Analyze.
  */
@@ -50,6 +56,7 @@ export function useRecorder() {
   )
   const [elapsedMs, setElapsedMs] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [level, setLevel] = useState(0)
 
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -138,6 +145,7 @@ export function useRecorder() {
       return false
     }
     setError(null)
+    setNotice(null)
     setStatus('requesting')
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -169,23 +177,49 @@ export function useRecorder() {
       recorder.onstop = () => {
         const durationMs = Date.now() - startedAtRef.current
         const mimeType = mimeRef.current || 'audio/webm'
-        const blob = new Blob(chunksRef.current, { type: mimeType })
+        const original = new Blob(chunksRef.current, { type: mimeType })
         stopTimer()
         cleanupAnalyser()
         releaseStream()
-        setStatus('stopped')
-        const result: RecordingResult | null =
-          blob.size > 0
-            ? {
-                blob,
-                mimeType,
-                extension: extensionFor(mimeType),
-                durationMs,
-              }
-            : null
-        if (!result) setError('No audio was captured. Please try again.')
-        resolveRef.current?.(result)
-        resolveRef.current = null
+
+        const finish = (result: RecordingResult | null) => {
+          setStatus('stopped')
+          resolveRef.current?.(result)
+          resolveRef.current = null
+        }
+
+        if (original.size === 0) {
+          setError('No audio was captured. Please try again.')
+          finish(null)
+          return
+        }
+
+        const keepOriginal = (): RecordingResult => ({
+          blob: original,
+          mimeType,
+          extension: extensionFor(mimeType),
+          durationMs,
+        })
+
+        setStatus('processing')
+        void convertToWav(original, { maxBytes: MAX_UPLOAD_BYTES }).then((converted) => {
+          if (converted.ok) {
+            finish({
+              blob: converted.blob,
+              mimeType: 'audio/wav',
+              extension: '.wav',
+              durationMs,
+            })
+            return
+          }
+          const kept = extensionFor(mimeType).slice(1).toUpperCase()
+          setNotice(
+            converted.reason === 'too_large'
+              ? `This recording is too long to save as WAV within the 25 MB limit, so it was kept as ${kept}.`
+              : `Your browser could not convert the recording to WAV, so it was kept as ${kept}.`,
+          )
+          finish(keepOriginal())
+        })
       }
 
       startedAtRef.current = Date.now()
@@ -243,11 +277,12 @@ export function useRecorder() {
     elapsedMs,
     level,
     error,
+    notice,
     start,
     stop,
     reset,
     isRecording: status === 'recording',
-    isBusy: status === 'requesting',
+    isBusy: status === 'requesting' || status === 'processing',
     canRecord: status !== 'unsupported' && status !== 'denied',
   }
 }
