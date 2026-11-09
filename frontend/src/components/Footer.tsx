@@ -10,7 +10,6 @@ export function Footer() {
 
   return (
     <footer className="relative overflow-hidden">
-      {/* smooth transition from the dark page into the footer field */}
       <div className="h-px w-full bg-gradient-to-r from-transparent via-white/12 to-transparent" />
       <div className="relative bg-ink-900">
         <div
@@ -40,7 +39,10 @@ export function Footer() {
               <div className="flex flex-col gap-2.5">
                 <span className="label mb-1">Product</span>
                 <Link to="/" className="text-mist-400 transition-colors hover:text-mist-100">
-                  Home
+                  Introduction
+                </Link>
+                <Link to="/try" className="text-mist-400 transition-colors hover:text-mist-100">
+                  Try it
                 </Link>
                 <Link to="/demo" className="text-mist-400 transition-colors hover:text-mist-100">
                   Demo
@@ -49,20 +51,16 @@ export function Footer() {
               <div className="flex flex-col gap-2.5">
                 <span className="label mb-1">Pipeline</span>
                 <span className="text-mist-500">Gnani Prisma · STT</span>
-                <span className="text-mist-500">Groq - qwen/qwen3.8-27b</span>
+                <span className="text-mist-500">Groq · Qwen LLM</span>
                 <span className="text-mist-500">Gnani Timbre · TTS</span>
               </div>
             </nav>
           </div>
 
-          {/* oversized wordmark — sized with a ratio so it always fits edge to edge */}
           <div className="relative select-none pb-12 pt-2" aria-hidden="true">
             <div
               className="whitespace-nowrap text-center font-medium leading-[0.82] tracking-[-0.045em] text-transparent"
               style={{
-                // The shell is max 1180px wide with 24px side padding; this word
-                // measures ~6.32x its font-size in the UI font, so dividing the
-                // available width keeps it exactly edge to edge at every width.
                 fontSize: 'min(11rem, calc((min(100vw, 1180px) - 48px) / 6.5))',
                 WebkitTextStroke: '1px rgba(255,255,255,0.17)',
               }}
