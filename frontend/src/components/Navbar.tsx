@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { motion } from 'framer-motion'
 
 const LINKS = [
@@ -10,8 +10,6 @@ const LINKS = [
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
-  const location = useLocation()
-
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12)
     onScroll()
