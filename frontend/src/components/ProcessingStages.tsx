@@ -13,7 +13,7 @@ export interface StageView {
 const DEFAULT_STAGES: StageView[] = [
   { key: 'audio', label: 'Processing customer audio', status: 'pending' },
   { key: 'stt', label: 'Transcribing with Gnani Prisma', status: 'pending' },
-  { key: 'llm', label: 'Understanding conversation with Llama', status: 'pending' },
+  { key: 'llm', label: 'Understanding conversation with LLM', status: 'pending' },
   { key: 'crm', label: 'Generating customer intelligence', status: 'pending' },
   { key: 'tts', label: 'Generating localized response with Gnani Timbre', status: 'pending' },
 ]
