@@ -1,0 +1,26 @@
+{
+  "illustrative": true,
+  "notice": "Synthetic fixture for development and review. Not a real customer analysis.",
+  "id": "scenario-01-salary-delay-codemixed",
+  "title": "Salary delay, code-mixed Telugu + English, no commitment",
+  "language": "Telugu, code-mixed with English",
+  "transcript": "Hello sir, nenu ee month salary vachaka pay chestanu ani cheppanu. Kaani naa account lo already paid ani chupistondi, adi tappu. Please check cheyandi, naaku 15 tareekh tarvata matrame possible.",
+  "agent_context": "Customer says the account already shows the payment as made. Confirm.",
+  "expected": {
+    "payment_commitment": false,
+    "promised_amount": null,
+    "promised_date_present": true,
+    "promised_date_normalized": null,
+    "dispute_raised": true,
+    "complaint_raised": false,
+    "human_review_required": true,
+    "min_confidence": "medium"
+  },
+  "why": [
+    "The customer gives a reason (waiting for salary) and a relative date reference, but never explicitly promises to pay.",
+    "'pay chestanu ani cheppanu' describes a past statement, not a new commitment — willingness must not become a commitment.",
+    "The customer says the account wrongly shows the payment as already made, which is a dispute.",
+    "'15 tareekh tarvata' can mean on or after the 15th, so the normalised date must stay null.",
+    "A dispute plus an ambiguous date means human review is mandatory."
+  ]
+}

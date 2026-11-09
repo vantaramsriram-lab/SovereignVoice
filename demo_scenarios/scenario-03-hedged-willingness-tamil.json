@@ -1,0 +1,24 @@
+{
+  "illustrative": true,
+  "notice": "Synthetic fixture for development and review. Not a real customer analysis.",
+  "id": "scenario-03-hedged-willingness-tamil",
+  "title": "Hedged willingness that must not become a commitment (Tamil + English)",
+  "language": "Tamil, code-mixed with English",
+  "transcript": "Naan try panren, next week paakalam. Salary vara varaikkum mudiyathu. Enakku amount pathi theriyala.",
+  "agent_context": null,
+  "expected": {
+    "payment_commitment": false,
+    "promised_amount": null,
+    "promised_date_present": true,
+    "promised_date_normalized": null,
+    "payment_intention": "general_willingness",
+    "dispute_raised": false,
+    "human_review_required": true
+  },
+  "why": [
+    "'Try panren' and 'paakalam' are hedges. They express willingness, not a promise.",
+    "No amount is known to the customer, so no amount may be extracted.",
+    "'next week' is vague and must remain an unnormalised phrase.",
+    "Low-confidence records require human review and must not trigger an automated commitment."
+  ]
+}

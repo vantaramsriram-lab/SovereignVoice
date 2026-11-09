@@ -1,0 +1,24 @@
+{
+  "illustrative": true,
+  "notice": "Synthetic fixture for development and review. Not a real customer analysis.",
+  "id": "scenario-04-complaint-harassment-bilingual",
+  "title": "Complaint about repeated calls, no payment information (Kannada + English)",
+  "language": "Kannada, code-mixed with English",
+  "transcript": "Nimage dayavittu dinakke mooru baari call maadabedi. Naan already office ge helididini. Nanage ee bill amount sari illa anta anisutte.",
+  "agent_context": "Customer is unhappy about call frequency.",
+  "expected": {
+    "payment_commitment": false,
+    "promised_amount": null,
+    "promised_date_present": false,
+    "complaint_raised": true,
+    "dispute_raised": true,
+    "sentiment": "frustrated",
+    "human_review_required": true
+  },
+  "why": [
+    "'Dinakke mooru baari call maadabedi' is a complaint about repeated calls.",
+    "'bill amount sari illa' questions the billed amount, which is a dispute.",
+    "The customer provides no payment date or amount, so both must remain empty.",
+    "Complaint and dispute flags always force human review."
+  ]
+}

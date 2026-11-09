@@ -1,0 +1,25 @@
+{
+  "illustrative": true,
+  "notice": "Synthetic fixture for development and review. Not a real customer analysis.",
+  "id": "scenario-02-explicit-commitment-hindi",
+  "title": "Explicit commitment with stated amount and date (Hindi + English)",
+  "language": "Hindi, code-mixed with English",
+  "transcript": "Sir main 15 tareekh ko paanch hazaar rupaye pay karunga, pakka. EMI ka amount thoda kam ho sakta hai kya?",
+  "agent_context": "Customer asked whether the EMI amount can be reduced.",
+  "expected": {
+    "payment_commitment": true,
+    "promised_amount": "paanch hazaar rupaye",
+    "promised_date_present": true,
+    "promised_date_normalized_may_be_present": "2026-11-15",
+    "dispute_raised": false,
+    "complaint_raised": false,
+    "human_review_required": true,
+    "concession_approved": false
+  },
+  "why": [
+    "The customer explicitly commits ('pay karunga, pakka') and states both an amount and a date.",
+    "The amount must be preserved verbatim; a numeric value may be added only if unambiguous.",
+    "The EMI question is a request, not an approved concession. No concession may be granted automatically.",
+    "Any recorded commitment always requires human review before action."
+  ]
+}

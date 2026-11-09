@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------- secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --------------------------------------------------------------- python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+backend/.env
+
+# ---------------------------------------------------------------- node
+node_modules/
+dist/
+dist-ssr/
+.vite/
+.npm/
+*.local
+
+# ---------------------------------------------------------------- assets
+# Never commit real customer audio or generated audio
+backend/recordings/
+backend/outputs/
+*.wav
+*.mp3
+*.m4a
+*.ogg
+*.webm
+*.flac
+!demo_scenarios/**/*.json
+
+# ------------------------------------------------------------------ os
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------- logs
+*.log
+npm-debug.log*
+logs/
+
+# --------------------------------------------------------------- editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# --------------------------------------------------------- screenshots
+screenshots/

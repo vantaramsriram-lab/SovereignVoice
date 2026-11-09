@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink-950 text-mist-100 font-sans antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgba(143, 240, 198, 0.22);
+    color: #f7f7f9;
+  }
+
+  /* Focus rings that stay readable on dark surfaces */
+  :focus-visible {
+    outline: 2px solid rgba(143, 240, 198, 0.7);
+    outline-offset: 2px;
+  }
+
+  /* Restrained scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #08080a;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #22222b;
+    border-radius: 999px;
+    border: 2px solid #08080a;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2e2e38;
+  }
+}
+
+@layer components {
+  .shell {
+    @apply mx-auto w-full max-w-[1180px] px-6 sm:px-8;
+  }
+
+  .surface {
+    @apply rounded-3xl border border-white/[0.07] bg-ink-800/70 backdrop-blur-xl;
+  }
+
+  .hairline {
+    @apply border-t border-white/[0.06];
+  }
+
+  .label {
+    @apply text-[11px] font-medium uppercase tracking-[0.16em] text-mist-500;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-mist-50 px-6 py-3
+      text-sm font-semibold text-ink-950 transition-all duration-300
+      hover:bg-white hover:shadow-[0_16px_40px_-18px_rgba(255,255,255,0.5)]
+      disabled:cursor-not-allowed disabled:bg-ink-600 disabled:text-mist-500
+      disabled:shadow-none;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/10
+      px-5 py-2.5 text-sm font-medium text-mist-200 transition-all duration-300
+      hover:border-white/20 hover:bg-white/[0.04] hover:text-white;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03]
+      px-3 py-1 text-[11px] font-medium tracking-wide text-mist-300;
+  }
+
+  /* shimmer skeleton for genuine loading states */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.03) 25%,
+      rgba(255, 255, 255, 0.07) 37%,
+      rgba(255, 255, 255, 0.03) 63%
+    );
+    background-size: 200% 100%;
+    @apply animate-shimmer rounded-lg;
+  }
+}
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
