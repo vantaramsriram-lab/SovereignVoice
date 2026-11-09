@@ -1,13 +1,10 @@
 import { useEffect } from 'react'
-import {
-  Route,
-  Routes,
-  useLocation,
-} from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Navbar } from './components/Navbar'
 import { Footer } from './components/Footer'
 import { Home } from './pages/Home'
+import { Intro } from './pages/Intro'
 import { Demo } from './pages/Demo'
 
 function ScrollToTop() {
@@ -24,7 +21,7 @@ function NotFound() {
       <p className="label mb-3">404</p>
       <h1 className="text-2xl font-medium text-mist-50">This page does not exist.</h1>
       <p className="mt-2 text-[13.5px] text-mist-500">
-        SovereignVoice has exactly two pages: Home and Demo.
+        Explore the introduction, try your own recording, or browse the demo library.
       </p>
     </div>
   )
@@ -47,7 +44,8 @@ export default function App() {
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
           >
             <Routes location={location}>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Intro />} />
+              <Route path="/try" element={<Home />} />
               <Route path="/demo" element={<Demo />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

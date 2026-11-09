@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Archive, ArrowRight, Database, Trash2 } from 'lucide-react'
+import { Archive, ArrowRight, Database, Sparkles, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { DemoRecord } from '../types'
 import {
@@ -15,12 +15,30 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { Notice } from '../components/ui/Notice'
 import { BackgroundAura } from '../components/ui/BackgroundAura'
 
+// Add approved, self-recorded exports here as JSON files. The glob stays empty
+// until the user adds files, so a fresh clone has no public sample recordings.
+const sampleModules = import.meta.glob<DemoRecord>('../samples/*.json', {
+  eager: true,
+  import: 'default',
+})
+
 export function Demo() {
   const [records, setRecords] = useState<DemoRecord[]>([])
   const [footprint, setFootprint] = useState('0 KB')
   const [error, setError] = useState<string | null>(null)
   const [confirmClear, setConfirmClear] = useState(false)
   const [loaded, setLoaded] = useState(false)
+
+  const sampleRecords = useMemo(
+    () =>
+      Object.entries(sampleModules)
+        .map(([path, record]) => ({
+          ...record,
+          id: `sample-${record.id || path.split('/').pop()}`,
+        }))
+        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    [],
+  )
 
   const refresh = useCallback(async () => {
     try {
@@ -36,7 +54,6 @@ export function Demo() {
 
   useEffect(() => {
     void refresh()
-    // Keep the page in sync if another tab adds or removes a record.
     return subscribeToRecordChanges(() => void refresh())
   }, [refresh])
 
@@ -69,19 +86,19 @@ export function Demo() {
           <div>
             <p className="label mb-3">Demo library</p>
             <h1 className="text-3xl font-medium tracking-[-0.025em] text-mist-50 sm:text-[2.6rem]">
-              Saved analyses
+              Sample analyses and your recordings
             </h1>
-            <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-mist-400">
-              Every analysis you run on the Home page is stored in this browser only.
-              Nothing is uploaded anywhere else, and no customer data leaves your machine
-              beyond the analysis request itself.
+            <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-mist-400">
+              Explore the public sample analyses, then run your own recording. Your
+              analyses stay in this browser; public samples are read-only and shared
+              with every visitor.
             </p>
           </div>
 
           <div className="flex items-center gap-3 text-[11.5px] text-mist-500">
             <span className="flex items-center gap-1.5 rounded-full border border-white/[0.08] px-3 py-1.5">
               <Database size={11} />
-              {records.length} record{records.length === 1 ? '' : 's'} · {footprint}
+              {records.length} your record{records.length === 1 ? '' : 's'} · {footprint}
             </span>
             {records.length > 0 &&
               (confirmClear ? (
@@ -108,7 +125,7 @@ export function Demo() {
                   className="flex items-center gap-1.5 rounded-full border border-white/[0.08] px-3 py-1.5 transition-colors hover:border-danger/40 hover:text-danger"
                 >
                   <Trash2 size={11} />
-                  Clear all
+                  Clear your analyses
                 </button>
               ))}
           </div>
@@ -120,15 +137,43 @@ export function Demo() {
           </Notice>
         )}
 
-        <div className="mt-10">
+        {sampleRecords.length > 0 && (
+          <section className="mt-12">
+            <div className="mb-5 flex items-center gap-2">
+              <Sparkles size={15} className="text-mist-300" />
+              <div>
+                <p className="label">Shared with everyone</p>
+                <h2 className="mt-1 text-xl font-medium text-mist-50">Sample analyses</h2>
+              </div>
+              <span className="ml-auto text-[11px] text-mist-600">
+                {sampleRecords.length} public sample{sampleRecords.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <div className="space-y-4">
+              {sampleRecords.map((record) => (
+                <DemoEntry key={record.id} record={record} readOnly />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="mt-12">
+          <div className="mb-5 flex items-center gap-2">
+            <Archive size={15} className="text-mist-300" />
+            <div>
+              <p className="label">Private to this browser</p>
+              <h2 className="mt-1 text-xl font-medium text-mist-50">Your analyses</h2>
+            </div>
+          </div>
+
           {!loaded ? null : records.length === 0 ? (
             <EmptyState
               icon={<Archive size={20} />}
-              title="No saved analyses yet"
-              description="Run an analysis on the Home page and it will appear here — with the customer audio, the generated localized response, and the verified CRM record."
+              title="No analyses in this browser yet"
+              description="Record or upload an audio sample on the Try page. Your analysis will appear here and remain in this browser until you delete it."
               action={
-                <Link to="/" className="btn-primary">
-                  Run an analysis <ArrowRight size={15} />
+                <Link to="/try" className="btn-primary">
+                  Try your own recording <ArrowRight size={15} />
                 </Link>
               }
             />
@@ -141,16 +186,12 @@ export function Demo() {
               </AnimatePresence>
             </motion.div>
           )}
-        </div>
+        </section>
 
         <p className="mt-10 text-[11px] leading-relaxed text-mist-600">
-          Every analysis is kept in this browser's local database until you delete it.
-          No API keys, tokens or credentials are ever stored here. Separate
-          illustrative sample scenarios live in the project's{' '}
-          <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10.5px]">
-            demo_scenarios/
-          </code>{' '}
-          folder and are not presented as real customer analyses.
+          Your analyses are stored in this browser's local database. Public sample
+          files are bundled with the website and are visible to every visitor. Never
+          publish real customer recordings or confidential information.
         </p>
       </div>
     </div>
