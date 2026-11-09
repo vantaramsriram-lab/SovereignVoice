@@ -13,7 +13,7 @@ import { SolutionSection } from '../components/home/SolutionSection'
 import { BackgroundAura } from '../components/ui/BackgroundAura'
 import { Notice } from '../components/ui/Notice'
 import { useHealth } from '../hooks/useHealth'
-
+// normall
 type Phase = 'idle' | 'processing' | 'results'
 
 const STAGE_KEYS: StageKey[] = ['audio', 'stt', 'llm', 'crm', 'tts']
