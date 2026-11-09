@@ -7,7 +7,8 @@ import {
   clearRecords,
   deleteRecord,
   readRecords,
-  storageFootprint,
+  recordsFootprint,
+  subscribeToRecordChanges,
 } from '../services/storage'
 import { DemoEntry } from '../components/demo/DemoEntry'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -19,37 +20,45 @@ export function Demo() {
   const [footprint, setFootprint] = useState('0 KB')
   const [error, setError] = useState<string | null>(null)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
-  const refresh = useCallback(() => {
-    const stored = readRecords()
-    setRecords(stored)
-    setFootprint(storageFootprint().readable)
+  const refresh = useCallback(async () => {
+    try {
+      const stored = await readRecords()
+      setRecords(stored)
+      setFootprint(recordsFootprint(stored))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load saved analyses.')
+    } finally {
+      setLoaded(true)
+    }
   }, [])
 
   useEffect(() => {
-    refresh()
-    // Keep the page in sync if another tab writes a record.
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === 'sovereignvoice.records.v1') refresh()
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
+    void refresh()
+    // Keep the page in sync if another tab adds or removes a record.
+    return subscribeToRecordChanges(() => void refresh())
   }, [refresh])
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     try {
-      setRecords(deleteRecord(id))
-      setFootprint(storageFootprint().readable)
+      await deleteRecord(id)
+      await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete this record.')
     }
   }
 
-  const handleClearAll = () => {
-    clearRecords()
-    setRecords([])
-    setConfirmClear(false)
-    setFootprint('0 KB')
+  const handleClearAll = async () => {
+    try {
+      await clearRecords()
+      setRecords([])
+      setFootprint('0 KB')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not clear saved analyses.')
+    } finally {
+      setConfirmClear(false)
+    }
   }
 
   return (
@@ -112,7 +121,7 @@ export function Demo() {
         )}
 
         <div className="mt-10">
-          {records.length === 0 ? (
+          {!loaded ? null : records.length === 0 ? (
             <EmptyState
               icon={<Archive size={20} />}
               title="No saved analyses yet"
@@ -135,8 +144,8 @@ export function Demo() {
         </div>
 
         <p className="mt-10 text-[11px] leading-relaxed text-mist-600">
-          Records are stored in this browser's localStorage and are capped to keep storage
-          healthy. No API keys, tokens or credentials are ever stored here. Separate
+          Every analysis is kept in this browser's local database until you delete it.
+          No API keys, tokens or credentials are ever stored here. Separate
           illustrative sample scenarios live in the project's{' '}
           <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10.5px]">
             demo_scenarios/
