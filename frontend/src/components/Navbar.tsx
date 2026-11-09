@@ -37,7 +37,7 @@ export function Navbar() {
             className="group flex items-center gap-2.5 rounded-full py-1 pr-2 transition-opacity hover:opacity-90"
             aria-label="SovereignVoice introduction"
           >
-            <span className="text-3xl font-medium tracking-[-0.01em] text-mist-50">
+            <span className="text-xl sm:text-3xl font-medium tracking-[-0.01em] text-mist-50">
               Sovereign<span className="text-mist-300">Voice</span>
             </span>
           </NavLink>
