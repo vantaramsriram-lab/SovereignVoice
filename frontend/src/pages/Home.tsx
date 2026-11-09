@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { AlertTriangle, ArrowRight, CircleSlash, WifiOff } from 'lucide-react'
+import { AlertTriangle, ArrowRight, WifiOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { analyzeAudio, ApiError, probeAudioDuration, blobToDataUrl } from '../services/api'
 import { buildInputDataUrl, saveAnalysis } from '../services/storage'
