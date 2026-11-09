@@ -289,7 +289,7 @@ export function VoiceInput({ onSubmit, isProcessing, blockedReason }: VoiceInput
           <button
             type="button"
             onClick={() => void toggleRecording()}
-            disabled={busy || !recorder.canRecord}
+            disabled={busy || recorder.isBusy || !recorder.canRecord}
             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-300 disabled:opacity-40 ${
               recorder.isRecording
                 ? 'bg-danger/15 text-danger hover:bg-danger/25'
@@ -335,7 +335,9 @@ export function VoiceInput({ onSubmit, isProcessing, blockedReason }: VoiceInput
           <p className="text-[11px] text-mist-600">
             {recorder.isRecording
               ? 'Press the stop button when the customer conversation ends.'
-              : hasSource
+              : recorder.status === 'processing'
+                ? 'Converting the recording to WAV…'
+                : hasSource
                 ? 'Ready. Analyze runs transcription, understanding, CRM extraction and localized speech.'
                 : 'WAV · MP3 · M4A · OGG · WEBM · FLAC · up to 25 MB'}
           </p>
@@ -352,6 +354,11 @@ export function VoiceInput({ onSubmit, isProcessing, blockedReason }: VoiceInput
         {(micHint || recorder.error) && !recorder.isRecording && (
           <p className="text-[12px] leading-relaxed text-warn" role="alert">
             {micHint ?? recorder.error}
+          </p>
+        )}
+        {recorder.notice && !recorder.isRecording && (
+          <p className="text-[12px] leading-relaxed text-warn" role="status">
+            {recorder.notice}
           </p>
         )}
         {blockedReason && (
