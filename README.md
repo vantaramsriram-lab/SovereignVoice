@@ -1,12 +1,12 @@
-#SovereignVoice
-##Multilingual AI Voice Intelligence for BFSI Collection Operations
+# SovereignVoice
+## Multilingual AI Voice Intelligence for BFSI Collection Operations
 
 ## 1. Project Overview
 SovereignVoice is an AI-powered platform that understands multilingual and code-mixed customer conversations, extracts financial intelligence, and generates natural localized voice responses.
 
 It addresses the limitations of traditional collection bots, especially with regional languages, noisy audio and customer intent detection.
 
-##2. Technology Stack
+## 2. Technology Stack
 
 - **Frontend:** React, TypeScript, Tailwind CSS
 - **Backend:** Python, FastAPI
@@ -15,7 +15,7 @@ It addresses the limitations of traditional collection bots, especially with reg
 - **Validation:** Python CRM Validator – financial accuracy checks
 - **TTS:** Gnani Timbre – localized voice generation
 
-##3. How the Website Works
+## 3. How the Website Works
 
 1. **Audio Input:** User uploads a customer call recording or records audio through the microphone.
 2. **Transcription:** Gnani Prisma converts speech into text and detects the language.
