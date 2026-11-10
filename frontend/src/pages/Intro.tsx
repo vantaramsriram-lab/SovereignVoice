@@ -68,9 +68,33 @@ export function Intro() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
             <span className="chip">Voice intelligence for BFSI collections</span>
-            <span className="font-mono text-[11px] tracking-[0.12em] text-mist-600">
-              {String(activeStep + 1).padStart(2, '0')} / {String(STEPS.length).padStart(2, '0')}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-[11px] tracking-[0.12em] text-mist-600">
+                {String(activeStep + 1).padStart(2, '0')} / {String(STEPS.length).padStart(2, '0')}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={goBack}
+                  disabled={activeStep === 0}
+                  aria-label="Previous introduction section"
+                  title="Previous section"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.035] text-mist-300 transition-all hover:border-white/25 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <ArrowLeft size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={activeStep === STEPS.length - 1}
+                  aria-label="Next introduction section"
+                  title="Next section"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.035] text-mist-300 transition-all hover:border-white/25 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <ArrowRight size={15} />
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="grid items-stretch gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14">
@@ -151,23 +175,12 @@ export function Intro() {
               </AnimatePresence>
 
               <div className="relative mt-9 flex items-center justify-between border-t border-white/[0.07] pt-5">
-                <button
-                  type="button"
-                  onClick={goBack}
-                  disabled={activeStep === 0}
-                  className="flex items-center gap-2 rounded-full px-3 py-2 text-[12px] text-mist-400 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  <ArrowLeft size={13} /> Back
-                </button>
-                {activeStep < STEPS.length - 1 ? (
-                  <button type="button" onClick={goNext} className="btn-primary">
-                    Next <ArrowRight size={14} />
-                  </button>
-                ) : (
-                  <span className="flex items-center gap-1.5 text-[11px] text-mist-600">
-                    <ShieldCheck size={12} /> Human-in-the-loop by design
-                  </span>
-                )}
+                <span className="text-[11px] text-mist-600">
+                  Section {activeStep + 1} of {STEPS.length}
+                </span>
+                <span className="flex items-center gap-1.5 text-[11px] text-mist-600">
+                  <ShieldCheck size={12} /> Human-in-the-loop by design
+                </span>
               </div>
             </div>
           </div>
